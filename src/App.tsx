@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Student, GameSession, HallOfFameEntry, ScreenState } from './types';
+import { GameSession, HallOfFameEntry, ScreenState, Student } from './types';
 import { sounds } from './soundEngine';
+import { CHARACTERS } from './assets/characterData';
 import { TeacherPasswordModal } from './components/TeacherPasswordModal';
 import { TeacherSettingsModal } from './components/TeacherSettingsModal';
-import { AvatarSelectModal } from './components/AvatarSelectModal';
 import { FishingGameScreen } from './components/FishingGameScreen';
 import { ResultScreen } from './components/ResultScreen';
 import {
@@ -14,22 +14,21 @@ import {
   clearFirestoreLeaderboard
 } from './firebaseService';
 
-const DEFAULT_STUDENTS: Student[] = [
-  { id: '1', name: '김민준' },
-  { id: '2', name: '이서연' },
-  { id: '3', name: '박준혁' },
-  { id: '4', name: '최아린' },
-  { id: '5', name: '정예원' },
-  { id: '6', name: '윤해경' },
-  { id: '7', name: '강도윤' },
-  { id: '8', name: '한지우' }
+const DEFAULT_RECENT_NAMES = [
+  '김민준', '이서연', '박준혁', '최아린', '정예원', '윤해경', '강도윤', '한지우'
 ];
 
 export default function App() {
   // Navigation screen
   const [screen, setScreen] = useState<ScreenState>('SELECTION');
 
-  // Persistence data in localStorage
+  // Direct Name Input & Pokemon Selection
+  const [inputName, setInputName] = useState<string>(() => {
+    return localStorage.getItem('LAST_STUDENT_NAME') || '';
+  });
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string>('pikachu');
+
+  // Quick name chips (convenience for repeated plays)
   const [students, setStudents] = useState<Student[]>(() => {
     try {
       const saved = localStorage.getItem('STUDENT_LIST');
@@ -45,7 +44,7 @@ export default function App() {
     } catch {
       // Fallback
     }
-    return DEFAULT_STUDENTS;
+    return DEFAULT_RECENT_NAMES.map((name, i) => ({ id: `${i}`, name }));
   });
 
   // Default fish count is 0, synchronized with Firestore
@@ -55,8 +54,7 @@ export default function App() {
   const [hallOfFame, setHallOfFame] = useState<HallOfFameEntry[]>([]);
   const [isFirebaseLive, setIsFirebaseLive] = useState<boolean>(true);
 
-  // Current session & active student
-  const [selectedStudentForAvatar, setSelectedStudentForAvatar] = useState<string | null>(null);
+  // Active game session
   const [currentSession, setCurrentSession] = useState<GameSession | null>(null);
   const [lastRoundScore, setLastRoundScore] = useState<number>(0);
 
@@ -64,7 +62,7 @@ export default function App() {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState<boolean>(false);
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState<boolean>(false);
 
-  // Save student list to localStorage
+  // Save student chips to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('STUDENT_LIST', JSON.stringify(students.map(s => s.name)));
@@ -101,22 +99,31 @@ export default function App() {
     };
   }, []);
 
-  // Handler: Student tile clicked -> open avatar modal
-  const handleStudentTileClick = (studentName: string) => {
-    sounds.playTap();
-    setSelectedStudentForAvatar(studentName);
-  };
+  // Handler: Start Game with direct name and selected character
+  const handleStartGame = () => {
+    const trimmed = inputName.trim();
+    if (!trimmed) return;
 
-  // Handler: Avatar selected -> start game
-  const handleAvatarSelect = (avatarId: string, avatarImg: string) => {
-    if (!selectedStudentForAvatar) return;
+    sounds.playTap();
+    const character = CHARACTERS.find(c => c.id === selectedAvatarId) || CHARACTERS[0];
     const session: GameSession = {
-      studentName: selectedStudentForAvatar,
-      avatarId,
-      avatarImg
+      studentName: trimmed,
+      avatarId: character.id,
+      avatarImg: character.primaryPath
     };
+
+    // Remember name for next time and add to quick chips if new
+    try {
+      localStorage.setItem('LAST_STUDENT_NAME', trimmed);
+      if (!students.some(s => s.name === trimmed)) {
+        const newChip: Student = { id: Date.now().toString(), name: trimmed };
+        setStudents(prev => [newChip, ...prev].slice(0, 16));
+      }
+    } catch {
+      // Ignore
+    }
+
     setCurrentSession(session);
-    setSelectedStudentForAvatar(null);
     setScreen('PLAYING');
   };
 
@@ -140,7 +147,7 @@ export default function App() {
     setScreen('RESULT');
   };
 
-  // Handler: Play again with same student
+  // Handler: Play again with same student & character
   const handlePlayAgain = () => {
     if (currentSession) {
       setScreen('PLAYING');
@@ -152,7 +159,6 @@ export default function App() {
   // Handler: Switch student / Return to selection
   const handleChangeStudent = () => {
     setCurrentSession(null);
-    setSelectedStudentForAvatar(null);
     setScreen('SELECTION');
   };
 
@@ -181,7 +187,7 @@ export default function App() {
   // Screen rendering
   return (
     <div className="w-full min-h-screen bg-[#E0F2FE] flex flex-col select-none">
-      {/* 1. SELECTION SCREEN */}
+      {/* 1. SELECTION SCREEN: 이름 직접 입력 + 캐릭터 선택 */}
       {screen === 'SELECTION' && (
         <div className="flex-1 flex flex-col items-center justify-between p-4 md:p-6 bg-gradient-to-b from-[#BAE6FD] via-[#E0F2FE] to-[#BBF7D0]">
           {/* Top Bar with Live Leaderboard & Teacher Settings */}
@@ -235,12 +241,12 @@ export default function App() {
             </div>
             <div>
               <p className="text-xs md:text-sm font-bold text-gray-800 bg-white/90 inline-block px-4 py-1 border-2 border-black shadow-[2px_2px_0px_#000]">
-                내 이름을 선택하고 함께할 포켓몬을 골라보세요!
+                내 이름을 입력하고 함께할 포켓몬을 골라보세요!
               </p>
             </div>
           </div>
 
-          {/* PROMINENT LIVE LEADERBOARD LINK BANNER (Requested: 게임 첫화면에 리더보드를 확인할 수 있도록 링크) */}
+          {/* PROMINENT LIVE LEADERBOARD LINK BANNER */}
           <div className="w-full max-w-4xl bg-gradient-to-r from-[#FEF08A] via-[#FDE047] to-[#FEF08A] border-4 border-black p-3.5 shadow-[5px_5px_0px_#000] mb-3 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="text-3xl">🏆</span>
@@ -271,35 +277,132 @@ export default function App() {
             </button>
           </div>
 
-          {/* Student Name Grid (Class Bulletin Board style) */}
-          <div className="w-full max-w-4xl bg-[#15803D] border-8 border-[#78350F] shadow-[10px_10px_0px_#000] p-5 md:p-7 mb-4">
-            <div className="flex items-center justify-between border-b-2 border-white/40 pb-2 mb-4">
-              <span className="text-white font-black text-sm md:text-base tracking-wide flex items-center gap-1.5">
-                <span>🎒</span>
-                <span>우리 반 꼬마 낚시꾼 ({students.length}명)</span>
-              </span>
-              <span className="text-yellow-300 text-xs font-bold">
-                👇 내 이름을 터치하세요!
-              </span>
+          {/* MAIN INTERACTIVE CARD: 1. 이름 입력 + 2. 포켓몬 선택 + 3. 출발 버튼 */}
+          <div className="w-full max-w-4xl bg-[#15803D] border-8 border-[#78350F] shadow-[10px_10px_0px_#000] p-4 md:p-6 mb-4 space-y-4">
+            {/* Step 1: Name Input */}
+            <div className="bg-[#FEF9C3] border-4 border-black p-4 shadow-[4px_4px_0px_#000]">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm md:text-base font-black text-black flex items-center gap-1.5">
+                  <span>✏️</span>
+                  <span>1. 꼬마 낚시꾼 이름 입력</span>
+                </label>
+                <span className="text-xs text-gray-600 font-bold">최대 8글자</span>
+              </div>
+
+              <input
+                type="text"
+                value={inputName}
+                onChange={e => setInputName(e.target.value)}
+                placeholder="내 이름을 입력해주세요 (예: 김민준, 이서연)"
+                maxLength={8}
+                className="w-full text-center font-black text-xl md:text-2xl bg-white border-4 border-black p-3 shadow-[3px_3px_0px_#000] focus:bg-yellow-50 focus:outline-none placeholder:text-gray-400 placeholder:text-sm md:placeholder:text-base"
+              />
+
+              {/* Quick Select Chips */}
+              {students.length > 0 && (
+                <div className="mt-2.5 pt-2 border-t border-black/20">
+                  <span className="text-[11px] font-bold text-gray-700 block mb-1">
+                    👇 터치해서 바로 입력하기:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-0.5">
+                    {students.map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          sounds.playTap();
+                          setInputName(s.name);
+                        }}
+                        className={`px-2.5 py-1 text-xs font-black border-2 border-black shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer transition-colors ${
+                          inputName === s.name ? 'bg-yellow-400 text-black' : 'bg-white hover:bg-yellow-100 text-gray-800'
+                        }`}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 max-h-[360px] overflow-y-auto p-1">
-              {students.map((student) => (
-                <button
-                  key={student.id}
-                  onClick={() => handleStudentTileClick(student.name)}
-                  className="group relative bg-[#FEF9C3] hover:bg-[#FEF08A] active:bg-[#FDE047] border-4 border-black p-3.5 md:p-4 text-center shadow-[4px_4px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#000] transition-transform cursor-pointer flex flex-col items-center justify-center gap-1"
-                >
-                  <div className="text-xl">🎒</div>
-                  <span className="text-base md:text-lg font-black text-black tracking-wide">
-                    {student.name}
-                  </span>
-                  <span className="text-[11px] text-gray-700 font-bold bg-white/70 px-2 py-0.5 border border-black/40">
-                    낚시하러 가기
-                  </span>
-                </button>
-              ))}
+            {/* Step 2: Companion Pokemon Avatar Selection */}
+            <div className="bg-[#FEF9C3] border-4 border-black p-4 shadow-[4px_4px_0px_#000]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm md:text-base font-black text-black flex items-center gap-1.5">
+                  <span>🌟</span>
+                  <span>2. 함께할 포켓몬 고르기</span>
+                </span>
+                <span className="text-xs text-blue-700 font-bold">마음에 드는 포켓몬을 터치하세요!</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {CHARACTERS.map(c => {
+                  const isSelected = selectedAvatarId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        sounds.playSelect();
+                        setSelectedAvatarId(c.id);
+                      }}
+                      style={{ backgroundColor: isSelected ? c.color : '#FFFFFF' }}
+                      className={`relative border-4 border-black p-3 flex flex-col items-center justify-between gap-2 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'ring-4 ring-yellow-400 shadow-[6px_6px_0px_#000] scale-102'
+                          : 'opacity-85 hover:opacity-100 shadow-[3px_3px_0px_#000] hover:scale-101'
+                      }`}
+                    >
+                      <span className="text-xs font-black px-2 py-0.5 bg-white/90 border-2 border-black shadow-[1px_1px_0px_#000]">
+                        {c.badge}
+                      </span>
+
+                      <div className="w-16 h-16 flex items-center justify-center bg-white/80 border-2 border-black p-1 shadow-[2px_2px_0px_#000]">
+                        <img
+                          src={c.primaryPath}
+                          alt={c.name}
+                          className="pixel-avatar w-12 h-12 object-contain"
+                          onError={e => {
+                            (e.target as HTMLImageElement).src = c.fallbackDataUri;
+                          }}
+                        />
+                      </div>
+
+                      <div className="text-center">
+                        <span className="text-sm font-black text-black block">{c.name}</span>
+                        {isSelected ? (
+                          <span className="text-[10px] font-black text-red-600 bg-white px-2 py-0.5 border border-black inline-block mt-0.5">
+                            선택됨 ✨
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-gray-500 font-bold">선택하기</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Step 3: Start Game Button */}
+            <button
+              type="button"
+              onClick={handleStartGame}
+              disabled={!inputName.trim()}
+              className={`w-full py-4 text-center font-black text-base md:text-xl border-4 border-black shadow-[6px_6px_0px_#000] transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                inputName.trim()
+                  ? 'bg-[#4ADE80] hover:bg-[#22C55E] text-black active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#000] animate-pulse'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70'
+              }`}
+            >
+              <span>🎣</span>
+              <span>
+                {inputName.trim()
+                  ? `${inputName.trim()} 친구와 함께 낚시하러 출발! 👉`
+                  : '이름을 입력하고 낚시를 시작해보세요!'}
+              </span>
+              <span>🐟</span>
+            </button>
           </div>
 
           {/* Cooperative Aquarium Banner Footer */}
@@ -348,17 +451,7 @@ export default function App() {
         />
       )}
 
-      {/* MODAL 1: Avatar Selection */}
-      {selectedStudentForAvatar && (
-        <AvatarSelectModal
-          isOpen={Boolean(selectedStudentForAvatar)}
-          studentName={selectedStudentForAvatar}
-          onClose={() => setSelectedStudentForAvatar(null)}
-          onSelectAvatar={handleAvatarSelect}
-        />
-      )}
-
-      {/* MODAL 2: Teacher Password Verification */}
+      {/* MODAL 1: Teacher Password Verification */}
       <TeacherPasswordModal
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
@@ -368,7 +461,7 @@ export default function App() {
         }}
       />
 
-      {/* MODAL 3: Teacher Settings */}
+      {/* MODAL 2: Teacher Settings */}
       <TeacherSettingsModal
         isOpen={isTeacherModalOpen}
         onClose={() => setIsTeacherModalOpen(false)}

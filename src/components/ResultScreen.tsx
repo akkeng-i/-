@@ -303,7 +303,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
                 }}
                 className="flex-1 py-3 bg-[#FEF08A] hover:bg-[#FDE047] text-black font-black text-base border-4 border-black shadow-[5px_5px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#000] cursor-pointer"
               >
-                👥 다른 친구 하기 (이름 선택)
+                👥 다른 친구 하기 (이름 입력)
               </button>
             </>
           ) : (
@@ -314,7 +314,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
               }}
               className="w-full py-3 bg-[#4ADE80] hover:bg-[#22C55E] text-black font-black text-base border-4 border-black shadow-[5px_5px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#000] cursor-pointer"
             >
-              🎒 꼬마 낚시꾼 이름 선택하고 낚시하러 가기 👉
+              🎒 꼬마 낚시꾼 이름 입력하고 낚시하러 가기 👉
             </button>
           )}
         </div>
