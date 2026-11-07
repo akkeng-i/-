@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'DungGeunMo';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: 'Jua', 'DungGeunMo', sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  margin: 0;
+  padding: 0;
+  background-color: #E0F2FE;
+}
+
+/* 픽셀 아트 이미지 및 아바타 선명도 보존 */
+img.pixel-art, .pixel-avatar {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  object-fit: contain;
+}
+
+/* 고전 레트로 UI 테두리 및 그림자 */
+.retro-box {
+  border: 4px solid #000000;
+  box-shadow: 5px 5px 0px #000000;
+}
+
+.retro-btn {
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0px #000000;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  cursor: pointer;
+}
+
+.retro-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #000000;
+}
+
+/* 나룻배 흔들림 애니메이션 */
+@keyframes boatSway {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1.2deg);
+  }
+}
+
+.boat-bobbing {
+  animation: boatSway 3s ease-in-out infinite;
+}
+
+/* 수초 흔들림 애니메이션 */
+@keyframes weedSway {
+  0%, 100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
+.seaweed-sway {
+  animation: weedSway 3.2s ease-in-out infinite;
+}
+
+/* 공기방울 상승 애니메이션 */
+@keyframes bubbleRise {
+  0% {
+    transform: translateY(100%) scale(0.7);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-400px) scale(1.2);
+    opacity: 0;
+  }
+}
+
+.animate-bubble {
+  animation: bubbleRise 6s linear infinite;
+}
+
+/* 축하 색종이 폭죽 애니메이션 */
+@keyframes confettiDrop {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-confetti {
+  animation: confettiDrop 3s linear infinite;
+}

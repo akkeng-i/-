@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Represents a student's fishing game score record in the Hall of Fame.",
+      "type": "object",
+      "properties": {
+        "studentName": {
+          "type": "string",
+          "description": "Name of the child (e.g. 김민준, 이서연)."
+        },
+        "score": {
+          "type": "integer",
+          "description": "Number of fish caught within 30 seconds."
+        },
+        "avatarId": {
+          "type": "string",
+          "description": "Avatar identifier (pikachu, charmander, squirtle, bulbasaur)."
+        },
+        "avatarImg": {
+          "type": "string",
+          "description": "Avatar image relative path or data URL."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp ISO string when the score was recorded."
+        }
+      },
+      "required": ["studentName", "score", "avatarId"]
+    },
+    "ClassAquarium": {
+      "title": "ClassAquarium",
+      "description": "Aggregated cooperative class aquarium fish statistics.",
+      "type": "object",
+      "properties": {
+        "totalFishCount": {
+          "type": "integer",
+          "description": "Cumulative total fish caught by all students towards the 200 fish goal."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of the last update."
+        }
+      },
+      "required": ["totalFishCount"]
+    }
+  },
+  "firestore": {
+    "/leaderboard/{entryId}": {
+      "schema": {
+        "$ref": "#/entities/LeaderboardEntry"
+      },
+      "description": "Public hall of fame entries ordered by score."
+    },
+    "/classroom_stats/{statsId}": {
+      "schema": {
+        "$ref": "#/entities/ClassAquarium"
+      },
+      "description": "Shared class aquarium progress document."
+    }
+  }
+}

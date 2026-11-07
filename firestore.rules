@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny global catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Leaderboard collection for preschool fishing game
+    match /leaderboard/{entryId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentName is string
+                    && request.resource.data.studentName.size() > 0
+                    && request.resource.data.studentName.size() <= 64
+                    && request.resource.data.score is int
+                    && request.resource.data.score >= 0
+                    && request.resource.data.score <= 200
+                    && request.resource.data.avatarId is string;
+      allow update, delete: if true;
+    }
+
+    // Classroom cooperative aquarium stats
+    match /classroom_stats/{statsId} {
+      allow read: if true;
+      allow write: if request.resource.data.totalFishCount is int
+                   && request.resource.data.totalFishCount >= 0;
+    }
+  }
+}

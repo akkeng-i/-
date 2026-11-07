@@ -1,0 +1,6 @@
+{
+  "name": "숲속 글자 낚시꾼",
+  "description": "유아를 위한 한글 학습 웹 게임 - 숲속 글자 낚시터",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
